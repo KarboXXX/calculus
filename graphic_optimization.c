@@ -41,6 +41,7 @@ int main(int argc, char **argv) {
     printf("especifique o alvo (fps)\n");
     return -1;
   }
+
   char *fps_target_string = argv[1];
   char **endptr = &fps_target_string;
   float float_target = strtof(fps_target_string, endptr);
