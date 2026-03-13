@@ -8,14 +8,14 @@ float proc_time(float r) { return 0.5 * (r * r) + 2.0 * r + 5.0; }
 /* derivada de primeira ordem */
 float df_proc_time(float r) { return r + 2.0; }
 
-/* método de newton-raphson, para encontrar raízes, no nosso caso: de f(r) =
- * T(r) - 16.67 */
+/* método de newton-raphson, para encontrar raízes, no nosso caso: de
+f(r) = T(r) - 16.67 */
 float newton_raphson(float fps_target) {
   float limite_tempo = 1000.0 / fps_target;
-  float r = 2.0; /* estimativa */
-  float tolerancia = 0.0001;
+  float r = 3.0; /* estimativa */
+  float tolerancia = 0.001;
 
-  int max_i = 20;
+  unsigned long max_i = 1000000;
 
   printf("alvo: %.2f ms (%.2f FPS)\n\n", limite_tempo, fps_target);
 
@@ -24,7 +24,7 @@ float newton_raphson(float fps_target) {
     float df = df_proc_time(r);            /* f'(r) = T'(r) */
     float r_novo = r - (f / df);
 
-    printf("index = %d: r = %.6f, T(r) = %.4f ms, erro = %.6f\n", i + 1, r,
+    printf("index = %d: r = %.6f, T(r) = %.6f ms, erro = %.6f\n", i + 1, r,
            proc_time(r), fabs(r_novo - r));
 
     if (fabs(r_novo - r) < tolerancia) {
@@ -53,7 +53,8 @@ int main(int argc, char **argv) {
     printf("error on conversion from string argument to floating point number.\n");
     return -1;
   }
-  
-  newton_raphson(float_target);
+
+  const float raiz = newton_raphson(float_target);
+  printf("\nraiz calculada: %f\n", raiz);  
   return 0;
 }
