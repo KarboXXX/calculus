@@ -38,10 +38,39 @@ async function parseObj(text) {
     return { v: vertices, f: faces };
 }
 obj_input.addEventListener("change", updateModelObject);
+function scroll_handle(e) {
+    const zoom_factor = 0.8;
+    if (e.deltaY > 0) {
+        camera_pos = translate3d(camera_pos, { z: zoom_factor });
+    }
+    else if (e.deltaY < 0) {
+        camera_pos = translate3d(camera_pos, { z: -zoom_factor });
+    }
+}
+function keyboard_handle(e) {
+    const move_factor = 0.4;
+    if (e.type == "keydown") {
+        if (e.code == "KeyW")
+            camera_pos = translate3d(camera_pos, { y: -move_factor });
+        if (e.code == "KeyS")
+            camera_pos = translate3d(camera_pos, { y: move_factor });
+        if (e.code == "KeyD")
+            camera_pos = translate3d(camera_pos, { x: -move_factor });
+        if (e.code == "KeyA")
+            camera_pos = translate3d(camera_pos, { x: move_factor });
+    }
+    if (e.type == "keyup") {
+    }
+}
+document.addEventListener("wheel", scroll_handle);
+document.addEventListener("keydown", keyboard_handle);
+document.addEventListener("keyup", keyboard_handle);
 canvas.width = 900;
 canvas.height = 900;
-const ctx = canvas.getContext("2d");
-// console.log(canvas, ctx);
+var camera_pos = { x: 0, y: 0, z: 2 };
+const ctx = canvas.getContext("2d", {
+    alpha: false,
+});
 const [w, h] = [canvas.width, canvas.height];
 function clear() {
     ctx.fillStyle = "gray";
@@ -149,16 +178,8 @@ function render_lines() {
             for (let i = 0; i < face.length; i++) {
                 const vertice = face[i];
                 const next_vertice = face[(i + 1) % face.length];
-                let point_0 = translate3d(rotate_z(vertecies[vertice], ds), {
-                    x: 0,
-                    y: 0,
-                    z: 50,
-                });
-                let point_1 = translate3d(rotate_z(vertecies[next_vertice], ds), {
-                    x: 0,
-                    y: 0,
-                    z: 50,
-                });
+                let point_0 = translate3d(rotate_z(vertecies[vertice], ds), camera_pos);
+                let point_1 = translate3d(rotate_z(vertecies[next_vertice], ds), camera_pos);
                 draw_line(vect_to_screen(to_screen(point_0)), vect_to_screen(to_screen(point_1)));
             }
         }

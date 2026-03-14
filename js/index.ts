@@ -16,7 +16,6 @@ async function updateModelObject(e: Event) {
     vertecies = parsed.v;
     faces = parsed.f;
 }
-
 async function parseObj(text: string) {
     const vertices: Point3D[] = [];
     const faces: number[][] = [];
@@ -38,15 +37,45 @@ async function parseObj(text: string) {
     });
     return { v: vertices, f: faces };
 }
-
 obj_input.addEventListener("change", updateModelObject);
+
+function scroll_handle(e: WheelEvent) {
+    const zoom_factor = 0.8;
+    if (e.deltaY > 0) {
+        camera_pos = translate3d(camera_pos, { z: zoom_factor });
+    } else if (e.deltaY < 0) {
+        camera_pos = translate3d(camera_pos, { z: -zoom_factor });
+    }
+}
+function keyboard_handle(e: KeyboardEvent) {
+    const move_factor = 0.4;
+    if (e.type == "keydown") {
+        if (e.code == "KeyW")
+            camera_pos = translate3d(camera_pos, { y: -move_factor });
+        if (e.code == "KeyS")
+            camera_pos = translate3d(camera_pos, { y: move_factor });
+        if (e.code == "KeyD")
+            camera_pos = translate3d(camera_pos, { x: -move_factor });
+        if (e.code == "KeyA")
+            camera_pos = translate3d(camera_pos, { x: move_factor });
+    }
+    if (e.type == "keyup") {
+    }
+}
+
+document.addEventListener("wheel", scroll_handle);
+document.addEventListener("keydown", keyboard_handle);
+document.addEventListener("keyup", keyboard_handle);
 
 canvas.width = 900;
 canvas.height = 900;
 
-const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+var camera_pos: Point3D = { x: 0, y: 0, z: 2 };
 
-// console.log(canvas, ctx);
+const ctx = canvas.getContext("2d", {
+    alpha: false,
+}) as CanvasRenderingContext2D;
+
 const [w, h] = [canvas.width, canvas.height];
 
 function clear() {
@@ -109,7 +138,7 @@ function rotate_z({ x, y, z }: Point3D, angle: number): Point3D {
 
 function translate3d(
     { x, y, z }: Point3D,
-    { x: dx = 0, y: dy = 0, z: dz = 0 }: Point3D,
+    { x: dx = 0, y: dy = 0, z: dz = 0 },
 ): Point3D {
     return {
         x: x + dx,
@@ -184,18 +213,13 @@ function render_lines() {
                 const vertice = face[i]!;
                 const next_vertice = face[(i + 1) % face.length]!;
 
-                let point_0 = translate3d(rotate_z(vertecies[vertice]!, ds), {
-                    x: 0,
-                    y: 0,
-                    z: 50,
-                });
+                let point_0 = translate3d(
+                    rotate_z(vertecies[vertice]!, ds),
+                    camera_pos,
+                );
                 let point_1 = translate3d(
                     rotate_z(vertecies[next_vertice]!, ds),
-                    {
-                        x: 0,
-                        y: 0,
-                        z: 50,
-                    },
+                    camera_pos,
                 );
                 draw_line(
                     vect_to_screen(to_screen(point_0)),
