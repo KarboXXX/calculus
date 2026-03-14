@@ -1,6 +1,45 @@
 const canvas: HTMLCanvasElement = document.getElementById(
     "canvas",
-) as HTMLCanvasElement;
+)! as HTMLCanvasElement;
+const obj_input = document.getElementById("obj")! as HTMLInputElement;
+
+async function updateModelObject(e: Event) {
+    const files = obj_input.files;
+    if (!files) return;
+    if (files.length < 1) return;
+    if (!files.item(0)) return;
+
+    const file = files.item(0)!;
+    const text = await file.text();
+
+    let parsed = await parseObj(text);
+    vertecies = parsed.v;
+    faces = parsed.f;
+}
+
+async function parseObj(text: string) {
+    const vertices: Point3D[] = [];
+    const faces: number[][] = [];
+    text.split("\n").forEach((line) => {
+        const parts = line.trim().split(/\s+/);
+        if (parts[0] === "v") {
+            vertices.push({
+                x: parseFloat(parts[1]!),
+                y: parseFloat(parts[2]!),
+                z: parseFloat(parts[3]!),
+            });
+        } else if (parts[0] === "f") {
+            const face: number[] = [];
+            for (let i = 1; i < parts.length; i++) {
+                face.push(parseInt(parts[i]!.split("/")[0]!) - 1);
+            }
+            faces.push(face);
+        }
+    });
+    return { v: vertices, f: faces };
+}
+
+obj_input.addEventListener("change", updateModelObject);
 
 canvas.width = 900;
 canvas.height = 900;
@@ -87,7 +126,7 @@ function translate({ x, y }: Point, { x: dx = 0, y: dy = 0 }: Point): Point {
 
 let dt = 0;
 
-const vertecies: Point3D[] = [
+var vertecies: Point3D[] = [
     { x: 0.5, y: 0.5, z: -0.5 }, // 0
     { x: -0.5, y: 0.5, z: -0.5 }, // 1
     { x: -0.5, y: 0.5, z: 0.5 }, // 2
@@ -99,7 +138,7 @@ const vertecies: Point3D[] = [
     { x: -0.5, y: -0.5, z: -0.5 }, // 7
 ];
 
-const faces = [
+var faces = [
     [0, 1, 2, 3],
     [4, 5, 6, 7],
     [0, 4],
@@ -137,7 +176,7 @@ function render_lines() {
     let ds = 0;
     setInterval(() => {
         clear();
-        ds += 0.8 * dt;
+        ds += 2 * dt;
         for (const face of faces) {
             // 0 1 2 3
             // ^-^-^-^ -> 0
@@ -148,14 +187,14 @@ function render_lines() {
                 let point_0 = translate3d(rotate_z(vertecies[vertice]!, ds), {
                     x: 0,
                     y: 0,
-                    z: 2,
+                    z: 50,
                 });
                 let point_1 = translate3d(
                     rotate_z(vertecies[next_vertice]!, ds),
                     {
                         x: 0,
                         y: 0,
-                        z: 2,
+                        z: 50,
                     },
                 );
                 draw_line(
