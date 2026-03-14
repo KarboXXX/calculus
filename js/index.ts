@@ -13,7 +13,7 @@ async function updateModelObject(e: Event) {
     const text = await file.text();
 
     let parsed = await parseObj(text);
-    vertecies = parsed.v;
+    verticies = parsed.v;
     faces = parsed.f;
 }
 async function parseObj(text: string) {
@@ -99,7 +99,7 @@ function draw_point({ x, y }: Point) {
     ctx.fillRect(x - size / 2, y - size / 2, size, size);
 }
 
-function draw_line({ x, y }: Point, { x: x1, y: y1 }: Point) {
+async function draw_line({ x, y }: Point, { x: x1, y: y1 }: Point) {
     const size = 2;
 
     ctx.strokeStyle = "black";
@@ -155,7 +155,7 @@ function translate({ x, y }: Point, { x: dx = 0, y: dy = 0 }: Point): Point {
 
 let dt = 0;
 
-var vertecies: Point3D[] = [
+var verticies: Point3D[] = [
     { x: 0.5, y: 0.5, z: -0.5 }, // 0
     { x: -0.5, y: 0.5, z: -0.5 }, // 1
     { x: -0.5, y: 0.5, z: 0.5 }, // 2
@@ -176,7 +176,7 @@ var faces = [
     [1, 7],
 ];
 
-function render_vertecies() {
+function render_verticies() {
     const fps = 180;
     dt = 1 / fps;
 
@@ -184,26 +184,22 @@ function render_vertecies() {
     setInterval(() => {
         clear();
         ds += 1 * dt;
-        for (let i = 0; i < vertecies.length; i++) {
-            if (!vertecies[i]) {
+        for (let i = 0; i < verticies.length; i++) {
+            if (!verticies[i]) {
                 continue;
             }
-            let point_0 = translate3d(rotate_z(vertecies[i]!, ds), {
-                x: 0,
-                y: 0,
-                z: 2,
-            });
+            let point_0 = translate3d(rotate_z(verticies[i]!, ds), camera_pos);
             draw_point(vect_to_screen(to_screen(point_0)));
         }
     }, 1000 / fps);
 }
 
 function render_lines() {
-    const fps = 240;
+    const fps = 180;
     dt = 1 / fps;
 
     let ds = 0;
-    setInterval(() => {
+    setInterval(async () => {
         clear();
         ds += 2 * dt;
         for (const face of faces) {
@@ -214,13 +210,14 @@ function render_lines() {
                 const next_vertice = face[(i + 1) % face.length]!;
 
                 let point_0 = translate3d(
-                    rotate_z(vertecies[vertice]!, ds),
+                    rotate_z(verticies[vertice]!, ds),
                     camera_pos,
                 );
                 let point_1 = translate3d(
-                    rotate_z(vertecies[next_vertice]!, ds),
+                    rotate_z(verticies[next_vertice]!, ds),
                     camera_pos,
                 );
+
                 draw_line(
                     vect_to_screen(to_screen(point_0)),
                     vect_to_screen(to_screen(point_1)),
@@ -232,5 +229,5 @@ function render_lines() {
 }
 
 // !!! ONE RENDER AT A TIME, RACE CONDITION ADVISED.
-// render_vertecies();
+// render_verticies();
 render_lines();
