@@ -14,6 +14,7 @@ async function updateModelObject(e) {
     let parsed = await parseObj(text);
     verticies = parsed.v;
     faces = parsed.f;
+    console.log([faces, verticies]);
 }
 async function parseObj(text) {
     const vertices = [];
@@ -70,8 +71,15 @@ canvas.height = 900;
 var camera_pos = { x: 0, y: 0, z: 2 };
 const ctx = canvas.getContext("2d", {
     alpha: false,
+    willReadFrequently: false,
+    desynchronized: false,
 });
 const [w, h] = [canvas.width, canvas.height];
+fetch("default_cube.obj").then(async (r) => {
+    const txt = await r.text();
+    const { v, f } = await parseObj(txt);
+    ((verticies = v), (faces = f));
+});
 function clear() {
     ctx.fillStyle = "gray";
     ctx.fillRect(0, 0, w, h);
@@ -81,15 +89,18 @@ function draw_point({ x, y }) {
     ctx.fillStyle = "black";
     ctx.fillRect(x - size / 2, y - size / 2, size, size);
 }
-async function draw_line({ x, y }, { x: x1, y: y1 }) {
-    const size = 2;
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = size;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x1, y1);
-    ctx.stroke();
-}
+// function draw_line({ x, y }: Point, { x: x1, y: y1 }: Point) {
+//     const size = 1;
+//     ctx.fillStyle = "black";
+//     ctx.lineWidth = size;
+//     ctx.beginPath();
+//     ctx.moveTo(x, y);
+//     ctx.lineTo(x1, y1);
+//     ctx.stroke();
+// }
+let dt = 0;
+var verticies = [];
+var faces = [];
 function to_screen({ x, y, z }) {
     return {
         x: x / z,
@@ -126,63 +137,76 @@ function translate({ x, y }, { x: dx = 0, y: dy = 0 }) {
         y: y + dy,
     };
 }
-let dt = 0;
-var verticies = [
-    { x: 0.5, y: 0.5, z: -0.5 }, // 0
-    { x: -0.5, y: 0.5, z: -0.5 }, // 1
-    { x: -0.5, y: 0.5, z: 0.5 }, // 2
-    { x: 0.5, y: 0.5, z: 0.5 }, // 3
-    { x: 0.5, y: -0.5, z: -0.5 }, // 4
-    { x: 0.5, y: -0.5, z: 0.5 }, // 5
-    { x: -0.5, y: -0.5, z: 0.5 }, // 6
-    { x: -0.5, y: -0.5, z: -0.5 }, // 7
-];
-var faces = [
-    [0, 1, 2, 3],
-    [4, 5, 6, 7],
-    [0, 4],
-    [5, 3],
-    [2, 6],
-    [1, 7],
-];
-function render_verticies() {
-    const fps = 180;
-    dt = 1 / fps;
-    let ds = 0;
-    setInterval(() => {
-        clear();
-        ds += 1 * dt;
-        for (let i = 0; i < verticies.length; i++) {
-            if (!verticies[i]) {
-                continue;
-            }
-            let point_0 = translate3d(rotate_z(verticies[i], ds), camera_pos);
-            draw_point(vect_to_screen(to_screen(point_0)));
-        }
-    }, 1000 / fps);
+function prod_vetorial({ x: ax, y: ay, z: az }, { x: bx, y: by, z: bz }) {
+    if (az && bz)
+        return {
+            x: ay * bz - az * by,
+            y: az * bx - ax * bz,
+            z: ax * by - ay * bx,
+        };
+    else
+        return {
+            x: ax * by - ay * bx,
+            y: ay * bx - ax * by,
+        };
 }
-function render_lines() {
-    const fps = 180;
-    dt = 1 / fps;
-    let ds = 0;
-    setInterval(async () => {
-        clear();
-        ds += 2 * dt;
-        for (const face of faces) {
-            // 0 1 2 3
-            // ^-^-^-^ -> 0
+function prod_scalar({ x: ax, y: ay, z: az }, { x: bx, y: by, z: bz }) {
+    if (az && bz)
+        return ax * bx + ay * by + az * bz;
+    else
+        return ax * bx + ay * by;
+}
+let ds = 0;
+function* render_lines() {
+    clear();
+    for (const face of faces) {
+        if (face.length < 3)
+            continue;
+        yield () => {
+            ctx.beginPath();
+            const first_v = verticies[face[0]];
+            let p0 = translate3d(rotate_z(first_v, ds), camera_pos);
+            let sp0 = vect_to_screen(to_screen(p0));
+            ctx.moveTo(sp0.x, sp0.y);
             for (let i = 0; i < face.length; i++) {
-                const vertice = face[i];
-                const next_vertice = face[(i + 1) % face.length];
-                let point_0 = translate3d(rotate_z(verticies[vertice], ds), camera_pos);
-                let point_1 = translate3d(rotate_z(verticies[next_vertice], ds), camera_pos);
-                draw_line(vect_to_screen(to_screen(point_0)), vect_to_screen(to_screen(point_1)));
+                const vert = verticies[face[i]];
+                const p = translate3d(rotate_z(vert, ds), camera_pos);
+                const sp = vect_to_screen(to_screen(p));
+                ctx.lineTo(sp.x, sp.y);
             }
-        }
-        // draw_point(vect_to_screen(to_screen(point_0)));
-    }, 1000 / fps);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(0, 0, 0, 0.9)`;
+            ctx.fill();
+        };
+    }
 }
-// !!! ONE RENDER AT A TIME, RACE CONDITION ADVISED.
-// render_verticies();
-render_lines();
+let last_timestamp = 0;
+let delta_time = 0;
+let now = 0;
+let rotation_speed = 1.0;
+let fps = 0;
+function draw_fps(fps) {
+    ctx.font = "16px monospace";
+    ctx.fillStyle = "white";
+    ctx.shadowColor = "black";
+    ctx.shadowBlur = 4;
+    ctx.fillText(`FPS: ${Math.round(fps)}`, 10, 30);
+    ctx.shadowBlur = 0;
+}
+function render() {
+    if (last_timestamp > 0)
+        delta_time = (now - last_timestamp) / 1000;
+    else
+        delta_time = 1 / 60;
+    last_timestamp = now;
+    ds += 0.8 * delta_time;
+    ds %= 2 * Math.PI;
+    for (const draw of render_lines()) {
+        draw();
+    }
+    fps = 1 / delta_time;
+    draw_fps(fps);
+    requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
 //# sourceMappingURL=index.js.map

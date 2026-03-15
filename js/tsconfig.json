@@ -1,13 +1,20 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2024",
-    "types": [],
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "strict": true,
-  }
+    "compilerOptions": {
+        "module": "es2022",
+        "moduleResolution": "Node",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "es2024",
+        "types": [],
+        "lib": [
+            "DOM",
+            "ES2024"
+        ],
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "strict": true,
+    }
 }
