@@ -45,22 +45,22 @@ obj_input.addEventListener("change", updateModelObject);
 function scroll_handle(e: WheelEvent) {
     const zoom_factor = 0.8;
     if (e.deltaY > 0) {
-        camera_pos = camera_pos.translate3d({ z: zoom_factor });
-    } else if (e.deltaY < 0) {
         camera_pos = camera_pos.translate3d({ z: -zoom_factor });
+    } else if (e.deltaY < 0) {
+        camera_pos = camera_pos.translate3d({ z: zoom_factor });
     }
 }
 function keyboard_handle(e: KeyboardEvent) {
     const move_factor = 0.4;
     if (e.type == "keydown") {
         if (e.code == "KeyW")
-            camera_pos = camera_pos.translate3d({ y: -move_factor });
-        if (e.code == "KeyS")
             camera_pos = camera_pos.translate3d({ y: move_factor });
+        if (e.code == "KeyS")
+            camera_pos = camera_pos.translate3d({ y: -move_factor });
         if (e.code == "KeyD")
-            camera_pos = camera_pos.translate3d({ x: -move_factor });
-        if (e.code == "KeyA")
             camera_pos = camera_pos.translate3d({ x: move_factor });
+        if (e.code == "KeyA")
+            camera_pos = camera_pos.translate3d({ x: -move_factor });
     }
     if (e.type == "keyup") {
     }
@@ -189,7 +189,7 @@ class Point3D {
     }
 }
 
-var camera_pos = new Point3D(0, 0, 2);
+var camera_pos = new Point3D(0, 5, -10);
 
 const ctx = canvas.getContext("2d", {
     alpha: false,
@@ -246,7 +246,7 @@ function vect_to_screen({ x, y }: IPoint): IPoint {
     };
 }
 
-let ds = 5;
+let ds = 0;
 function* render_lines() {
     clear();
     for (const face of faces) {
@@ -292,12 +292,16 @@ let now = 0;
 let rotation_speed = 1.0;
 let fps = 0;
 
-function draw_fps(fps: number) {
+function draw_info(fps: number) {
     ctx.font = "16px monospace";
     ctx.fillStyle = "white";
     ctx.shadowColor = "black";
     ctx.shadowBlur = 4;
-    ctx.fillText(`FPS: ${Math.round(fps)}`, 10, 30);
+    ctx.fillText(
+        `FPS: ${Math.round(fps)}, C0 (XYZ): (${camera_pos.x.toFixed(3)} ${camera_pos.y.toFixed(3)} ${camera_pos.z.toFixed(3)})`,
+        10,
+        30,
+    );
     ctx.shadowBlur = 0;
 }
 
@@ -313,7 +317,7 @@ function render() {
         draw();
     }
     fps = 1 / delta_time;
-    draw_fps(fps);
+    draw_info(fps);
     requestAnimationFrame(render);
 }
 
