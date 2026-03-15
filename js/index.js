@@ -22,11 +22,8 @@ async function parseObj(text) {
     text.split("\n").forEach((line) => {
         const parts = line.trim().split(/\s+/);
         if (parts[0] === "v") {
-            vertices.push({
-                x: parseFloat(parts[1]),
-                y: parseFloat(parts[2]),
-                z: parseFloat(parts[3]),
-            });
+            const vert = new Point3D(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+            vertices.push(vert);
         }
         else if (parts[0] === "f") {
             const face = [];
@@ -42,23 +39,23 @@ obj_input.addEventListener("change", updateModelObject);
 function scroll_handle(e) {
     const zoom_factor = 0.8;
     if (e.deltaY > 0) {
-        camera_pos = translate3d(camera_pos, { z: zoom_factor });
+        camera_pos = camera_pos.translate3d({ z: zoom_factor });
     }
     else if (e.deltaY < 0) {
-        camera_pos = translate3d(camera_pos, { z: -zoom_factor });
+        camera_pos = camera_pos.translate3d({ z: -zoom_factor });
     }
 }
 function keyboard_handle(e) {
     const move_factor = 0.4;
     if (e.type == "keydown") {
         if (e.code == "KeyW")
-            camera_pos = translate3d(camera_pos, { y: -move_factor });
+            camera_pos = camera_pos.translate3d({ y: -move_factor });
         if (e.code == "KeyS")
-            camera_pos = translate3d(camera_pos, { y: move_factor });
+            camera_pos = camera_pos.translate3d({ y: move_factor });
         if (e.code == "KeyD")
-            camera_pos = translate3d(camera_pos, { x: -move_factor });
+            camera_pos = camera_pos.translate3d({ x: -move_factor });
         if (e.code == "KeyA")
-            camera_pos = translate3d(camera_pos, { x: move_factor });
+            camera_pos = camera_pos.translate3d({ x: move_factor });
     }
     if (e.type == "keyup") {
     }
@@ -68,7 +65,89 @@ document.addEventListener("keydown", keyboard_handle);
 document.addEventListener("keyup", keyboard_handle);
 canvas.width = 900;
 canvas.height = 900;
-var camera_pos = { x: 0, y: 0, z: 2 };
+class Point {
+    x = 0;
+    y = 0;
+    constructor(arg0, y) {
+        if (typeof arg0 === "object") {
+            this.x = arg0.x;
+            this.y = arg0.y;
+        }
+        else if (typeof arg0 === "number") {
+            this.x = arg0;
+            this.y = y ? y : 0;
+        }
+    }
+    add(v) {
+        return new Point(this.x + v.x, this.y + v.y);
+    }
+    translate({ x: dx = 0, y: dy = 0 }) {
+        this.x = this.x + dx;
+        this.y = this.y + dy;
+        return this;
+    }
+}
+class Point3D {
+    x = 0;
+    y = 0;
+    z = 0;
+    constructor(arg0, y, z) {
+        if (typeof arg0 === "object") {
+            this.x = arg0.x;
+            this.y = arg0.y;
+            this.z = arg0.z;
+        }
+        else if (typeof arg0 === "number") {
+            this.x = arg0;
+            this.y = y ? y : 0;
+            this.z = z ? z : 0;
+        }
+    }
+    add(v) {
+        return new Point3D(this.x + v.x, this.y + v.y, this.z + v.z);
+    }
+    sub(v) {
+        return new Point3D(this.x - v.x, this.y - v.y, this.z - v.z);
+    }
+    rotate_z(angle) {
+        // https://en.wikipedia.org/wiki/Rotation_matrix
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const x = this.x * cos - this.z * sin;
+        const z = this.x * sin + this.z * cos;
+        this.x = x;
+        this.z = z;
+        return this;
+    }
+    translate3d({ x: dx = 0, y: dy = 0, z: dz = 0 }) {
+        this.x = this.x + dx;
+        this.y = this.y + dy;
+        this.z = this.z + dz;
+        return this;
+    }
+    prod_vetorial({ x: bx, y: by, z: bz, }) {
+        return {
+            x: this.y * bz - this.z * by,
+            y: this.z * bx - this.x * bz,
+            z: this.x * by - this.y * bx,
+        };
+    }
+    prod_scalar({ x: bx, y: by, z: bz }) {
+        return this.x * bx + this.y * by + this.z * bz;
+    }
+    magnitude() {
+        return Math.sqrt((this.x ^ 2) + (this.y ^ 2) + (this.z ^ 2));
+    }
+    normalized() {
+        const magn = this.magnitude();
+        return {
+            x: this.x / magn,
+            y: this.y / magn,
+            z: this.z / magn,
+        };
+    }
+}
+var camera_pos = new Point3D(0, 0, 2);
 const ctx = canvas.getContext("2d", {
     alpha: false,
     willReadFrequently: false,
@@ -114,63 +193,31 @@ function vect_to_screen({ x, y }) {
         y: (1 - (y + 1) / 2) * h, // canvas desenha y de baixo pra cima
     };
 }
-function rotate_z({ x, y, z }, angle) {
-    // https://en.wikipedia.org/wiki/Rotation_matrix
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    return {
-        x: x * cos - z * sin,
-        y,
-        z: x * sin + z * cos,
-    };
-}
-function translate3d({ x, y, z }, { x: dx = 0, y: dy = 0, z: dz = 0 }) {
-    return {
-        x: x + dx,
-        y: y + dy,
-        z: z + dz,
-    };
-}
-function translate({ x, y }, { x: dx = 0, y: dy = 0 }) {
-    return {
-        x: x + dx,
-        y: y + dy,
-    };
-}
-function prod_vetorial({ x: ax, y: ay, z: az }, { x: bx, y: by, z: bz }) {
-    if (az && bz)
-        return {
-            x: ay * bz - az * by,
-            y: az * bx - ax * bz,
-            z: ax * by - ay * bx,
-        };
-    else
-        return {
-            x: ax * by - ay * bx,
-            y: ay * bx - ax * by,
-        };
-}
-function prod_scalar({ x: ax, y: ay, z: az }, { x: bx, y: by, z: bz }) {
-    if (az && bz)
-        return ax * bx + ay * by + az * bz;
-    else
-        return ax * bx + ay * by;
-}
-let ds = 0;
+let ds = 5;
 function* render_lines() {
     clear();
     for (const face of faces) {
         if (face.length < 3)
             continue;
+        // calcular vetores normais e fazer back-face culling
+        // const [vi0, vi1, vi2] = face.slice(0, 3)!;
+        // const [v0, v1, v2] = [
+        //     new Point3D(verticies[vi0!]!),
+        //     new Point3D(verticies[vi1!]!),
+        //     new Point3D(verticies[vi2!]!),
+        // ];
+        // const nv = v2.sub(v0).prod_vetorial(v1.sub(v0));
+        const first_v = new Point3D(verticies[face[0]]);
+        let p0 = first_v.rotate_z(ds).translate3d(camera_pos);
+        let sp0 = vect_to_screen(to_screen(p0));
+        if ((sp0.x > w || sp0.x < 0) && (sp0.y > h || sp0.y < 0))
+            continue;
         yield () => {
             ctx.beginPath();
-            const first_v = verticies[face[0]];
-            let p0 = translate3d(rotate_z(first_v, ds), camera_pos);
-            let sp0 = vect_to_screen(to_screen(p0));
             ctx.moveTo(sp0.x, sp0.y);
             for (let i = 0; i < face.length; i++) {
-                const vert = verticies[face[i]];
-                const p = translate3d(rotate_z(vert, ds), camera_pos);
+                const vert = new Point3D(verticies[face[i]]);
+                const p = vert.rotate_z(ds).translate3d(camera_pos);
                 const sp = vect_to_screen(to_screen(p));
                 ctx.lineTo(sp.x, sp.y);
             }
